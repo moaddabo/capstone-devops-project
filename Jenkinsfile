@@ -38,16 +38,22 @@ pipeline {
 
         stage('Checkov Scan') {
             steps {
-                sh 'checkov -d terraform || true'
+                sh 'export PATH=$PATH:/home/ubuntu/.local/bin && checkov -d terraform || true'
             }
         }
 
         stage('Terraform Deploy') {
             steps {
-                dir('terraform') {
-                    sh 'terraform init'
-                    sh 'terraform apply -auto-approve -var="image_name=$IMAGE_NAME"'
-                    sh 'terraform output app_url'
+                withCredentials([usernamePassword(
+                    credentialsId: 'aws-creds',
+                    usernameVariable: 'AWS_ACCESS_KEY_ID',
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY'
+                )]) {
+                    dir('terraform') {
+                        sh 'terraform init'
+                        sh 'terraform apply -auto-approve -var="image_name=$IMAGE_NAME"'
+                        sh 'terraform output app_url'
+                    }
                 }
             }
         }
